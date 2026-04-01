@@ -115,85 +115,6 @@ async function executeTool(toolName, toolInput, userId) {
 }
 
 // ─────────────────────────────────────────
-// MOCK Claude response — remove when credits loaded
-// ─────────────────────────────────────────
-function mockClaudeResponse(message, latitude, longitude) {
-  const lower = message.toLowerCase();
-  const placeKeywords = [
-    "find",
-    "near",
-    "mosque",
-    "church",
-    "eatery",
-    "restaurant",
-    "hospital",
-    "pharmacy",
-    "atm",
-    "bank",
-    "hotel",
-    "gas station",
-    "filling station",
-    "supermarket",
-    "market",
-  ];
-
-  const isPlaceSearch = placeKeywords.some((k) => lower.includes(k));
-
-  if (isPlaceSearch && latitude && longitude) {
-    // Simulate Claude deciding to call the searchNearbyPlaces tool
-    const query = lower.includes("mosque")
-      ? "mosque"
-      : lower.includes("church")
-      ? "church"
-      : lower.includes("eatery") || lower.includes("restaurant")
-      ? "restaurant"
-      : lower.includes("hospital")
-      ? "hospital"
-      : lower.includes("pharmacy")
-      ? "pharmacy"
-      : lower.includes("atm")
-      ? "atm"
-      : lower.includes("bank")
-      ? "bank"
-      : lower.includes("hotel")
-      ? "hotel"
-      : lower.includes("gas station") || lower.includes("filling station")
-      ? "gas_station"
-      : lower.includes("supermarket")
-      ? "supermarket"
-      : "place";
-
-    return {
-      stop_reason: "tool_use",
-      content: [
-        {
-          type: "tool_use",
-          id: "mock_tool_001",
-          name: "searchNearbyPlaces",
-          input: {
-            query,
-            latitude,
-            longitude,
-            radius: 5,
-          },
-        },
-      ],
-    };
-  }
-
-  // Pure conversational response — no tool call needed
-  return {
-    stop_reason: "end_turn",
-    content: [
-      {
-        type: "text",
-        text: `Hi! I'm Findr's assistant. I can help you find places near your location — mosques, eateries, hospitals, ATMs, gas stations, hotels, pharmacies and more. Just tell me what you're looking for and share your location!`,
-      },
-    ],
-  };
-}
-
-// ─────────────────────────────────────────
 // MAIN AGENT FUNCTION
 // ─────────────────────────────────────────
 async function chat({ sessionId, userMessage, latitude, longitude, userId }) {
@@ -213,16 +134,13 @@ async function chat({ sessionId, userMessage, latitude, longitude, userId }) {
   });
 
   // First Claude API call
-  // TODO: Remove mock and uncomment real API call when credits are loaded
-  // let response = await anthropic.messages.create({
-  //   model:      'claude-sonnet-4-20250514',
-  //   max_tokens: 1024,
-  //   system:     SYSTEM_PROMPT,
-  //   tools,
-  //   messages:   session.messages
-  // })
-
-  let response = mockClaudeResponse(userMessage, latitude, longitude);
+  let response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
+    system: SYSTEM_PROMPT,
+    tools,
+    messages: session.messages,
+  });
 
   // Agentic loop — keeps going until Claude stops calling tools
   while (response.stop_reason === "tool_use") {
@@ -251,39 +169,14 @@ async function chat({ sessionId, userMessage, latitude, longitude, userId }) {
       content: toolResults,
     });
 
-    // Second Claude API call — mock until credits loaded
-    // response = await anthropic.messages.create({
-    //   model:      'claude-sonnet-4-20250514',
-    //   max_tokens: 1024,
-    //   system:     SYSTEM_PROMPT,
-    //   tools,
-    //   messages:   session.messages
-    // })
-
-    // Parse tool results to build a natural response
-    const toolResult = JSON.parse(toolResults[0].content);
-    const topPlaces = toolResult.places.slice(0, 3);
-    const placeList = topPlaces
-      .map(
-        (p, i) =>
-          `${i + 1}. ${p.name} — ${p.distance_km}km away, rated ${
-            p.rating
-          }⭐ (${p.open_now ? "Open now" : "Closed"})`,
-      )
-      .join("\n");
-
-    response = {
-      stop_reason: "end_turn",
-      content: [
-        {
-          type: "text",
-          text:
-            toolResult.total === 0
-              ? `I couldn't find any places matching your search nearby. Try increasing the search radius or rephrasing your query.`
-              : `I found ${toolResult.total} place(s) near you:\n\n${placeList}\n\nWould you like directions to any of these?`,
-        },
-      ],
-    };
+    // Second Claude API call with tool results
+    response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      tools,
+      messages: session.messages,
+    });
   }
 
   // Extract final text response

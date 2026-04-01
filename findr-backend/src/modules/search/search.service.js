@@ -1,70 +1,67 @@
 const { pool } = require("../../config/db");
 const { redis } = require("../../config/redis");
+const axios = require("axios");
 require("dotenv").config();
 
 const CACHE_TTL = parseInt(process.env.CACHE_TTL_SECONDS) || 600;
 
 // ─────────────────────────────────────────
-// MOCK PLACES — swap this function out when
-// Google Places API key is ready
+// Fetch places from Google Places API
+// Documentation: https://developers.google.com/maps/documentation/places/web-service/search-nearby
 // ─────────────────────────────────────────
 async function fetchFromGooglePlaces(query, latitude, longitude, radius) {
-  // Simulates what Google Places API would return
-  const mockPlaces = [
-    {
-      google_place_id: "mock_001",
-      name: `${query} Place One`,
-      category: query,
-      address: "12 Lagos Island, Lagos",
-      phone: "+2348012345678",
-      website: null,
-      latitude: latitude + 0.005,
-      longitude: longitude + 0.005,
-      rating: 4.2,
-      total_ratings: 120,
-      opening_hours: {
-        open_now: true,
-        periods: [],
+  try {
+    const response = await axios.post(
+      "https://places.googleapis.com/v1/places:searchNearby",
+      {
+        includedTypes: [query],
+        maxResultCount: 20,
+        locationRestriction: {
+          circle: {
+            center: { latitude, longitude },
+            radius: radius * 1000,
+          },
+        },
       },
-      photos: [],
-    },
-    {
-      google_place_id: "mock_002",
-      name: `${query} Place Two`,
-      category: query,
-      address: "45 Victoria Island, Lagos",
-      phone: "+2348087654321",
-      website: "https://example.com",
-      latitude: latitude + 0.01,
-      longitude: longitude + 0.008,
-      rating: 3.8,
-      total_ratings: 85,
-      opening_hours: {
-        open_now: false,
-        periods: [],
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": process.env.GOOGLE_PLACES_API_KEY,
+          "X-Goog-FieldMask":
+            "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.currentOpeningHours,places.internationalPhoneNumber,places.websiteUri,places.photos",
+        },
       },
-      photos: [],
-    },
-    {
-      google_place_id: "mock_003",
-      name: `${query} Place Three`,
-      category: query,
-      address: "7 Lekki Phase 1, Lagos",
-      phone: null,
-      website: null,
-      latitude: latitude - 0.003,
-      longitude: longitude + 0.012,
-      rating: 4.7,
-      total_ratings: 340,
-      opening_hours: {
-        open_now: true,
-        periods: [],
-      },
-      photos: [],
-    },
-  ];
+    );
 
-  return mockPlaces;
+    const places = response.data.places || [];
+
+    return places.map((p) => ({
+      google_place_id: p.id,
+      name: p.displayName?.text || "Unknown",
+      category: query,
+      address: p.formattedAddress || null,
+      phone: p.internationalPhoneNumber || null,
+      website: p.websiteUri || null,
+      latitude: p.location.latitude,
+      longitude: p.location.longitude,
+      rating: p.rating || null,
+      total_ratings: p.userRatingCount || 0,
+      opening_hours: p.currentOpeningHours
+        ? {
+            open_now: p.currentOpeningHours.openNow,
+            periods: p.currentOpeningHours.periods || [],
+          }
+        : null,
+      photos: p.photos?.map((ph) => ({ reference: ph.name })) || [],
+    }));
+  } catch (error) {
+    console.error(
+      "Google Places API error:",
+      error.response?.data?.error?.message || error.message,
+    );
+    // Return empty array instead of crashing — PostGIS results will still be returned
+    return [];
+  }
 }
 
 // ─────────────────────────────────────────
@@ -225,11 +222,14 @@ async function searchNearby({
       radius,
     );
 
-    // Save fetched places into PostGIS for future searches
-    await savePlacesToDb(externalPlaces);
-
-    // Re-query PostGIS now that new places are saved
-    places = await queryPostGIS(query, latitude, longitude, radius);
+    if (externalPlaces.length > 0) {
+      await savePlacesToDb(externalPlaces);
+      places = await queryPostGIS(query, latitude, longitude, radius);
+    } else {
+      console.log(
+        "Google Places returned no results or is unavailable — using PostGIS results only",
+      );
+    }
   }
 
   // Step 6 — write to Redis cache
