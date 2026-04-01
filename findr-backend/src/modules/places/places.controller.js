@@ -3,6 +3,7 @@ const {
   savePlace,
   getSavedPlaces,
   removeSavedPlace,
+  getDirections,
 } = require("./places.service");
 
 async function getPlace(req, res, next) {
@@ -47,4 +48,30 @@ async function removeSaved(req, res, next) {
   }
 }
 
-module.exports = { getPlace, save, getSaved, removeSaved };
+async function directions(req, res, next) {
+  try {
+    const { originLat, originLng, placeId } = req.query;
+
+    if (!originLat || !originLng || !placeId) {
+      return res.status(400).json({
+        error: "originLat, originLng and placeId are required",
+      });
+    }
+
+    const lat = parseFloat(originLat);
+    const lng = parseFloat(originLng);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return res
+        .status(400)
+        .json({ error: "originLat and originLng must be valid numbers" });
+    }
+
+    const result = await getDirections(lat, lng, placeId);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { getPlace, save, getSaved, removeSaved, directions };

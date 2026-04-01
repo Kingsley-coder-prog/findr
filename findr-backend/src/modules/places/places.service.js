@@ -89,4 +89,78 @@ async function removeSavedPlace(userId, placeId) {
   }
 }
 
-module.exports = { getPlaceById, savePlace, getSavedPlaces, removeSavedPlace };
+async function getDirections(originLat, originLng, destPlaceId) {
+  // Look up destination place from our DB first
+  const result = await pool.query(
+    `SELECT
+      name, address,
+      ST_X(location::geometry) AS longitude,
+      ST_Y(location::geometry) AS latitude
+     FROM places
+     WHERE id::text = $1 OR google_place_id = $1`,
+    [destPlaceId],
+  );
+
+  if (result.rows.length === 0) {
+    const error = new Error("Destination place not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const destination = result.rows[0];
+
+  // TODO: Replace mock with real Google Directions API call when billing is confirmed
+  // const response = await axios.get('https://maps.googleapis.com/maps/api/directions/json', {
+  //   params: {
+  //     origin: `${originLat},${originLng}`,
+  //     destination: `${destination.latitude},${destination.longitude}`,
+  //     key: process.env.GOOGLE_MAPS_API_KEY
+  //   }
+  // })
+  // return response.data.routes[0]
+
+  // Mock directions response
+  const distanceMetres = Math.round(
+    Math.sqrt(
+      Math.pow((destination.latitude - originLat) * 111000, 2) +
+        Math.pow((destination.longitude - originLng) * 111000, 2),
+    ),
+  );
+  const distanceKm = (distanceMetres / 1000).toFixed(1);
+  const durationMinutes = Math.round(distanceMetres / 80); // ~80m per minute walking
+
+  return {
+    destination: {
+      name: destination.name,
+      address: destination.address,
+      latitude: destination.latitude,
+      longitude: destination.longitude,
+    },
+    origin: { latitude: originLat, longitude: originLng },
+    distance: {
+      metres: distanceMetres,
+      text: `${distanceKm} km`,
+    },
+    duration: {
+      minutes: durationMinutes,
+      text: `${durationMinutes} mins`,
+    },
+    steps: [
+      {
+        instruction: `Head towards ${destination.name}`,
+        distance: `${distanceKm} km`,
+        duration: `${durationMinutes} mins`,
+      },
+    ],
+    polyline: null, // real Google response includes encoded polyline for map rendering
+    source: "mock", // remove when real API is wired
+  };
+}
+
+module.exports = {
+  getPlaceById,
+  savePlace,
+  getSavedPlaces,
+  removeSavedPlace,
+  getDirections,
+};

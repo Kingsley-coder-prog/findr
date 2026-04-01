@@ -1,3 +1,4 @@
+const { pool } = require("../../config/db");
 const { searchNearby } = require("./search.service");
 
 async function search(req, res, next) {
@@ -45,4 +46,30 @@ async function search(req, res, next) {
   }
 }
 
-module.exports = { search };
+async function getSearchHistory(req, res, next) {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const result = await pool.query(
+      `SELECT
+        id, query, raw_query, radius_km,
+        results_count, source, searched_at,
+        ST_X(search_location::geometry) AS longitude,
+        ST_Y(search_location::geometry) AS latitude
+       FROM search_history
+       WHERE user_id = $1
+       ORDER BY searched_at DESC
+       LIMIT $2`,
+      [req.userId, limit],
+    );
+
+    res.status(200).json({
+      total: result.rows.length,
+      history: result.rows,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { search, getSearchHistory };
