@@ -1,3 +1,8 @@
 const router = require("express").Router();
-router.get("/ping", (req, res) => res.json({ module: "agent" }));
+const { sendMessage, resetSession } = require("./agent.controller");
+const { protect } = require("../../middleware/auth");
+
+router.post("/chat", protect, sendMessage);
+router.delete("/session/:sessionId", protect, resetSession);
+
 module.exports = router;
