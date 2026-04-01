@@ -1,4 +1,9 @@
-const { registerUser, loginUser, getUserById } = require("./auth.service");
+const {
+  registerUser,
+  loginUser,
+  getUserById,
+  logoutUser,
+} = require("./auth.service");
 
 async function register(req, res, next) {
   try {
@@ -57,4 +62,14 @@ async function getMe(req, res, next) {
   }
 }
 
-module.exports = { register, login, getMe };
+async function logout(req, res, next) {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    await logoutUser(token);
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { register, login, getMe, logout };

@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken");
+const { redis } = require("../config/redis");
 require("dotenv").config();
 
-function protect(req, res, next) {
+async function protect(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
 
@@ -12,8 +13,16 @@ function protect(req, res, next) {
     }
 
     const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Check if token has been blacklisted (user logged out)
+    const isBlacklisted = await redis.get(`blacklist:${token}`);
+    if (isBlacklisted) {
+      return res
+        .status(401)
+        .json({ error: "Token has been invalidated, please login again" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userId = decoded.userId;
     next();
   } catch (error) {

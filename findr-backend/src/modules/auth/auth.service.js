@@ -1,4 +1,5 @@
 const { pool } = require("../../config/db");
+const { redis } = require("../../config/redis");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -83,4 +84,22 @@ function generateToken(userId) {
   });
 }
 
-module.exports = { registerUser, loginUser, getUserById };
+async function logoutUser(token) {
+  // Decode token to get expiry without verifying
+  // (it might already be expired but we still want to blacklist it)
+  const decoded = jwt.decode(token);
+
+  if (decoded && decoded.exp) {
+    // Calculate remaining seconds until token expires
+    const now = Math.floor(Date.now() / 1000);
+    const remainingSeconds = decoded.exp - now;
+
+    if (remainingSeconds > 0) {
+      // Store in Redis blacklist until token naturally expires
+      await redis.setex(`blacklist:${token}`, remainingSeconds, "1");
+      console.log(`Token blacklisted for ${remainingSeconds} seconds`);
+    }
+  }
+}
+
+module.exports = { registerUser, loginUser, getUserById, logoutUser };
