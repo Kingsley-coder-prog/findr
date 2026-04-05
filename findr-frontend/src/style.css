@@ -5,25 +5,20 @@
   --font-sans: "DM Sans", sans-serif;
   --font-mono: "DM Mono", monospace;
 
-  --color-base: #0a0e14;
-  --color-card: #111720;
-  --color-input: #0d1219;
-  --color-hover: #1a2332;
-  --color-accent: #00d2be;
-  --color-accent-dim: rgba(0, 210, 190, 0.15);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-hover: rgba(0, 210, 190, 0.3);
-  --color-text: #e8edf5;
-  --color-muted: #6b7a8d;
-  --color-dim: #3d4a5c;
-  --color-error: #ff5f5f;
-  --color-success: #4cde9a;
-  --color-warning: #ffb547;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --color-app-base: #0a0e14;
+  --color-app-card: #111720;
+  --color-app-input: #0d1219;
+  --color-app-hover: #1a2332;
+  --color-app-accent: #00d2be;
+  --color-app-accent-dim: rgba(0, 210, 190, 0.15);
+  --color-app-border: rgba(255, 255, 255, 0.08);
+  --color-app-border-hover: rgba(0, 210, 190, 0.3);
+  --color-app-content: #e8edf5;
+  --color-app-subtle: #6b7a8d;
+  --color-app-faint: #3d4a5c;
+  --color-app-error: #ff5f5f;
+  --color-app-success: #4cde9a;
+  --color-app-warning: #ffb547;
 }
 
 /* Keep CSS variables for scoped components that still reference them */
