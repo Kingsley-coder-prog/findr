@@ -1,64 +1,161 @@
 <template>
   <div
-    class="min-h-screen bg-base max-w-[680px] mx-auto flex flex-col px-5 py-8"
+    style="
+      min-height: 100vh;
+      background: #0a0e14;
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    "
   >
     <!-- Header -->
     <div
-      class="border-b border-border pb-5 mb-6 flex items-center justify-between shrink-0"
+      style="
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        padding: 28px 20px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      "
     >
       <div>
         <h1
-          class="text-xl font-bold text-content mb-1 leading-tight tracking-tight"
+          style="
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: #e8edf5;
+            margin: 0 0 4px;
+            line-height: 1.2;
+          "
         >
           AI assistant
         </h1>
-        <p class="text-xs text-subtle m-0">
+        <p style="font-size: 0.75rem; color: #6b7a8d; margin: 0">
           Powered by Claude · Ask me anything
         </p>
       </div>
       <button
         v-if="agentStore.messages.length > 0"
         @click="clearChat"
-        class="text-xs text-subtle bg-transparent border-none cursor-pointer font-semibold px-3 py-2 rounded-xl transition-colors hover:text-error"
+        style="
+          font-size: 0.75rem;
+          color: #6b7a8d;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-weight: 600;
+          padding: 8px 12px;
+          border-radius: 10px;
+          transition: color 0.15s;
+        "
+        @mouseenter="(e) => (e.currentTarget.style.color = '#ff5f5f')"
+        @mouseleave="(e) => (e.currentTarget.style.color = '#6b7a8d')"
       >
         Clear chat
       </button>
     </div>
 
     <!-- Messages -->
-    <div ref="messagesEl" class="flex-1 overflow-y-auto pb-6">
+    <div ref="messagesEl" style="flex: 1; overflow-y: auto; padding: 24px 20px">
       <!-- Welcome state -->
       <div
         v-if="agentStore.messages.length === 0"
-        class="flex flex-col items-center justify-center min-h-[50vh] text-center"
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 50vh;
+          text-align: center;
+        "
       >
         <div
-          class="w-14 h-14 bg-accent/10 rounded-2xl flex items-center justify-center mb-5"
+          style="
+            width: 56px;
+            height: 56px;
+            background: rgba(0, 210, 190, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+          "
         >
           <svg
             viewBox="0 0 24 24"
             fill="none"
-            stroke="currentColor"
+            stroke="#00d2be"
             stroke-width="2"
-            class="w-7 h-7 text-accent"
+            style="width: 26px; height: 26px"
           >
             <path
               d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
             />
           </svg>
         </div>
-        <p class="text-lg font-bold text-content mb-2">
+        <p
+          style="
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e8edf5;
+            margin: 0 0 8px;
+          "
+        >
           Hello, I'm your Findr assistant
         </p>
-        <p class="text-sm text-subtle mb-7 max-w-[260px] leading-relaxed">
+        <p
+          style="
+            font-size: 0.875rem;
+            color: #6b7a8d;
+            margin: 0 0 28px;
+            max-width: 260px;
+            line-height: 1.5;
+          "
+        >
           Ask me to find places near you or anything about Findr
         </p>
-        <div class="flex flex-col gap-3 w-full max-w-[360px]">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 360px;
+          "
+        >
           <button
             v-for="s in suggestions"
             :key="s"
             @click="sendSuggestion(s)"
-            class="text-sm text-subtle bg-card border border-border rounded-2xl px-4 py-4 text-left cursor-pointer transition-all duration-150 hover:bg-hover hover:border-border-hover hover:text-content"
+            style="
+              font-size: 0.875rem;
+              color: #6b7a8d;
+              background: #111720;
+              border: 1px solid rgba(255, 255, 255, 0.07);
+              border-radius: 14px;
+              padding: 14px 16px;
+              text-align: left;
+              cursor: pointer;
+              transition: all 0.15s;
+              width: 100%;
+            "
+            @mouseenter="
+              (e) => {
+                e.currentTarget.style.borderColor = 'rgba(0,210,190,0.25)';
+                e.currentTarget.style.background = '#1a2332';
+                e.currentTarget.style.color = '#e8edf5';
+              }
+            "
+            @mouseleave="
+              (e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+                e.currentTarget.style.background = '#111720';
+                e.currentTarget.style.color = '#6b7a8d';
+              }
+            "
           >
             {{ s }}
           </button>
@@ -66,52 +163,102 @@
       </div>
 
       <!-- Messages -->
-      <div v-else class="flex flex-col gap-4">
+      <div v-else style="display: flex; flex-direction: column; gap: 16px">
         <div
           v-for="(msg, i) in agentStore.messages"
           :key="i"
-          class="flex"
-          :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
+          style="display: flex"
+          :style="
+            msg.role === 'user'
+              ? 'justify-content:flex-end;'
+              : 'justify-content:flex-start;'
+          "
         >
+          <!-- Agent avatar -->
           <div
             v-if="msg.role === 'agent'"
-            class="w-8 h-8 bg-accent/15 rounded-full flex items-center justify-center shrink-0 mt-1 mr-2.5"
+            style="
+              width: 32px;
+              height: 32px;
+              background: rgba(0, 210, 190, 0.15);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              margin-top: 4px;
+              margin-right: 10px;
+            "
           >
             <svg
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
+              stroke="#00d2be"
               stroke-width="2"
-              class="w-3.5 h-3.5 text-accent"
+              style="width: 15px; height: 15px"
             >
               <path
                 d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
               />
             </svg>
           </div>
+
+          <!-- User bubble: plain text. Agent bubble: rendered markdown -->
           <div
-            class="max-w-[78%] rounded-2xl px-4 py-4 text-sm leading-relaxed"
-            :class="
+            style="
+              max-width: 78%;
+              border-radius: 16px;
+              padding: 14px 16px;
+              font-size: 0.875rem;
+              line-height: 1.6;
+            "
+            :style="
               msg.role === 'user'
-                ? 'bg-accent text-base rounded-2xl rounded-br-md font-medium'
-                : 'bg-card border border-border text-content rounded-md rounded-tl-md'
+                ? 'background:#00d2be; color:#0a0e14; border-radius:16px 16px 4px 16px; font-weight:500;'
+                : 'background:#111720; border:1px solid rgba(255,255,255,0.07); color:#e8edf5; border-radius:4px 16px 16px 16px;'
             "
           >
-            <p class="m-0 whitespace-pre-wrap">{{ msg.content }}</p>
+            <!-- User messages: plain text -->
+            <p
+              v-if="msg.role === 'user'"
+              style="margin: 0; white-space: pre-wrap"
+            >
+              {{ msg.content }}
+            </p>
+            <!-- Agent messages: rendered markdown -->
+            <div
+              v-else
+              class="agent-message"
+              v-html="renderMarkdown(msg.content)"
+            ></div>
           </div>
         </div>
 
         <!-- Typing indicator -->
-        <div v-if="agentStore.isLoading" class="flex justify-start">
+        <div
+          v-if="agentStore.isLoading"
+          style="display: flex; justify-content: flex-start"
+        >
           <div
-            class="w-8 h-8 bg-accent/15 rounded-full flex items-center justify-center shrink-0 mt-1 mr-2.5"
+            style="
+              width: 32px;
+              height: 32px;
+              background: rgba(0, 210, 190, 0.15);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              margin-top: 4px;
+              margin-right: 10px;
+            "
           >
             <svg
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
+              stroke="#00d2be"
               stroke-width="2"
-              class="w-3.5 h-3.5 text-accent"
+              style="width: 15px; height: 15px"
             >
               <path
                 d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
@@ -119,34 +266,66 @@
             </svg>
           </div>
           <div
-            class="bg-card border border-border rounded-md rounded-tl-md px-4 py-4 flex items-center gap-1.5"
+            style="
+              background: #111720;
+              border: 1px solid rgba(255, 255, 255, 0.07);
+              border-radius: 4px 16px 16px 16px;
+              padding: 14px 16px;
+              display: flex;
+              align-items: center;
+              gap: 6px;
+            "
           >
-            <span class="w-2 h-2 bg-subtle rounded-full animate-bounce"></span>
-            <span
-              class="w-2 h-2 bg-subtle rounded-full animate-bounce"
-              style="animation-delay: 150ms"
-            ></span>
-            <span
-              class="w-2 h-2 bg-subtle rounded-full animate-bounce"
-              style="animation-delay: 300ms"
-            ></span>
+            <span class="dot"></span>
+            <span class="dot" style="animation-delay: 150ms"></span>
+            <span class="dot" style="animation-delay: 300ms"></span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Input -->
-    <div class="border-t border-border pt-4 shrink-0">
-      <div class="flex items-end gap-3">
+    <!-- Input bar -->
+    <div
+      style="
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        padding: 16px 20px 20px;
+        flex-shrink: 0;
+      "
+    >
+      <div style="display: flex; align-items: flex-end; gap: 12px">
         <div
-          class="flex-1 flex items-end gap-3 bg-card border border-border rounded-2xl px-4 py-4 focus-within:border-accent transition-colors"
+          style="
+            flex: 1;
+            background: #111720;
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 16px;
+            padding: 14px 16px;
+            transition: border-color 0.2s;
+          "
+          @focusin="(e) => (e.currentTarget.style.borderColor = '#00d2be')"
+          @focusout="
+            (e) =>
+              (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')
+          "
         >
           <textarea
             ref="textareaEl"
             v-model="message"
             placeholder="Ask me to find places near you..."
             rows="1"
-            class="flex-1 bg-transparent text-content text-sm outline-none border-none resize-none leading-relaxed max-h-32 font-sans"
+            style="
+              width: 100%;
+              background: transparent;
+              color: #e8edf5;
+              font-size: 0.875rem;
+              outline: none;
+              border: none;
+              font-family: inherit;
+              resize: none;
+              line-height: 1.6;
+              max-height: 128px;
+              display: block;
+            "
             @keydown.enter.exact.prevent="sendMessage"
             @input="autoResize"
           ></textarea>
@@ -154,21 +333,45 @@
         <button
           @click="sendMessage"
           :disabled="!message.trim() || agentStore.isLoading"
-          class="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center shrink-0 border-none cursor-pointer transition-opacity disabled:opacity-40"
+          style="
+            width: 48px;
+            height: 48px;
+            background: #00d2be;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.15s;
+          "
+          :style="
+            !message.trim() || agentStore.isLoading
+              ? 'opacity:0.4; cursor:not-allowed;'
+              : 'opacity:1;'
+          "
         >
           <svg
             viewBox="0 0 24 24"
             fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            class="w-4.5 h-4.5 text-base"
+            stroke="#0a0e14"
+            stroke-width="2.5"
+            style="width: 18px; height: 18px"
           >
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>
         </button>
       </div>
-      <p class="text-[0.65rem] text-faint text-center mt-2.5 mb-0">
+      <p
+        style="
+          font-size: 0.65rem;
+          color: #3d4a5c;
+          text-align: center;
+          margin: 10px 0 0;
+        "
+      >
         Press Enter to send · Shift+Enter for new line
       </p>
     </div>
@@ -179,6 +382,7 @@
 import { ref, nextTick, onMounted } from "vue";
 import { useAgentStore } from "@/stores/agent";
 import { useGeolocation } from "@/composables/useGeolocation";
+import { renderMarkdown } from "@/composables/useMarkdown";
 
 const agentStore = useAgentStore();
 const geo = useGeolocation();
@@ -199,11 +403,13 @@ function autoResize() {
   el.style.height = "auto";
   el.style.height = el.scrollHeight + "px";
 }
+
 async function scrollToBottom() {
   await nextTick();
   if (messagesEl.value)
     messagesEl.value.scrollTop = messagesEl.value.scrollHeight;
 }
+
 async function sendMessage() {
   if (!message.value.trim() || agentStore.isLoading) return;
   const text = message.value.trim();
@@ -213,6 +419,7 @@ async function sendMessage() {
   await agentStore.sendMessage(text, geo.latitude.value, geo.longitude.value);
   scrollToBottom();
 }
+
 async function sendSuggestion(s) {
   message.value = s;
   await sendMessage();
@@ -228,13 +435,57 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #6b7a8d;
+  border-radius: 50%;
+  animation: bounce 1s infinite;
+  display: inline-block;
+}
 @keyframes bounce {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-4px);
+    transform: translateY(-5px);
   }
+}
+/* Agent message markdown styles */
+.agent-message :deep(p) {
+  margin: 0 0 8px;
+}
+.agent-message :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.agent-message :deep(strong) {
+  color: #e8edf5;
+  font-weight: 700;
+}
+.agent-message :deep(em) {
+  color: #a0adb8;
+  font-style: italic;
+}
+.agent-message :deep(ul) {
+  margin: 8px 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.agent-message :deep(li) {
+  padding-left: 16px;
+  position: relative;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.agent-message :deep(li)::before {
+  content: "·";
+  position: absolute;
+  left: 4px;
+  color: #00d2be;
+  font-weight: 700;
 }
 </style>

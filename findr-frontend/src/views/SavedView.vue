@@ -440,7 +440,7 @@
         inset: 0;
         z-index: 50;
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         justify-content: center;
       "
     >
@@ -461,7 +461,7 @@
           max-width: 480px;
           background: #111720;
           border: 1px solid rgba(255, 255, 255, 0.07);
-          border-radius: 24px 24px 0 0;
+          border-radius: 24px;
           padding: 24px;
         "
       >
@@ -505,6 +505,7 @@
             </svg>
           </button>
         </div>
+
         <div
           style="
             background: #1a2332;
@@ -527,7 +528,15 @@
             {{ directionsData.destination.address }}
           </p>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+          "
+        >
           <div
             style="
               background: rgba(0, 210, 190, 0.1);
@@ -573,6 +582,46 @@
             </p>
           </div>
         </div>
+
+        <!-- Open in Google Maps -->
+        <div style="padding-top: 4px">
+          <a
+            :href="mapsUrl(directionsData)"
+            target="_blank"
+            rel="noopener"
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              width: 100%;
+              padding: 14px;
+              border-radius: 14px;
+              background: #00d2be;
+              color: #0a0e14;
+              font-size: 0.875rem;
+              font-weight: 700;
+              text-decoration: none;
+              transition: opacity 0.15s;
+            "
+            @mouseenter="(e) => (e.currentTarget.style.opacity = '0.9')"
+            @mouseleave="(e) => (e.currentTarget.style.opacity = '1')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              style="width: 18px; height: 18px"
+            >
+              <path
+                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+              />
+              <circle cx="12" cy="9" r="2.5" />
+            </svg>
+            Open in Google Maps
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -608,6 +657,15 @@ const emojiMap = {
 };
 function getCategoryEmoji(cat) {
   return emojiMap[cat] || "📍";
+}
+
+// Build Google Maps directions URL using coordinates returned by the backend
+function mapsUrl(data) {
+  const destLat = data.destination.latitude;
+  const destLng = data.destination.longitude;
+  const origLat = data.origin?.latitude || geo.latitude.value || 6.5059;
+  const origLng = data.origin?.longitude || geo.longitude.value || 3.3481;
+  return `https://www.google.com/maps/dir/?api=1&origin=${origLat},${origLng}&destination=${destLat},${destLng}&travelmode=driving`;
 }
 
 async function loadSaved() {
