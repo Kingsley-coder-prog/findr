@@ -6,15 +6,132 @@ require("dotenv").config();
 const CACHE_TTL = parseInt(process.env.CACHE_TTL_SECONDS) || 600;
 
 // ─────────────────────────────────────────
+// Google Places API (New) valid type map
+// Maps natural language / synonyms → valid includedTypes values
+// Full list: https://developers.google.com/maps/documentation/places/web-service/place-types
+// ─────────────────────────────────────────
+const GOOGLE_TYPE_MAP = {
+  // Food & drink
+  restaurant: "restaurant",
+  eatery: "restaurant",
+  eateries: "restaurant",
+  food: "restaurant",
+  buka: "restaurant",
+  "fast food": "fast_food_restaurant",
+  fast_food: "fast_food_restaurant",
+  cafe: "cafe",
+  coffee: "cafe",
+  bar: "bar",
+  bakery: "bakery",
+
+  // Health
+  hospital: "hospital",
+  clinic: "hospital",
+  "medical center": "hospital",
+  "medical centre": "hospital",
+  "health center": "hospital",
+  "health centre": "hospital",
+  doctor: "doctor",
+  pharmacy: "pharmacy",
+  chemist: "pharmacy",
+  drugstore: "pharmacy",
+  dentist: "dentist",
+  "dental clinic": "dentist",
+
+  // Finance
+  atm: "atm",
+  bank: "bank",
+
+  // Transport & fuel
+  "gas station": "gas_station",
+  gas_station: "gas_station",
+  "filling station": "gas_station",
+  "petrol station": "gas_station",
+  "fuel station": "gas_station",
+  "service station": "gas_station",
+  "bus stop": "transit_station",
+  "bus station": "bus_station",
+  "train station": "train_station",
+  "taxi stand": "taxi_stand",
+  parking: "parking",
+
+  // Accommodation
+  hotel: "hotel",
+  motel: "motel",
+  lodging: "lodging",
+  guesthouse: "lodging",
+  hostel: "lodging",
+  "guest house": "lodging",
+
+  // Shopping
+  supermarket: "supermarket",
+  market: "supermarket",
+  grocery: "grocery_store",
+  "grocery store": "grocery_store",
+  mall: "shopping_mall",
+  "shopping mall": "shopping_mall",
+  "shopping center": "shopping_mall",
+  "shopping centre": "shopping_mall",
+  store: "store",
+  shop: "store",
+
+  // Religion
+  mosque: "mosque",
+  church: "church",
+  "place of worship": "place_of_worship",
+  temple: "hindu_temple",
+  synagogue: "synagogue",
+
+  // Education
+  school: "school",
+  schools: "school",
+  "primary school": "school",
+  "secondary school": "school",
+  "primary and secondary schools": "school",
+  "primary and secondary school": "school",
+  university: "university",
+  college: "university",
+  "higher institution": "university",
+
+  // Emergency
+  police: "police",
+  "police station": "police",
+  "fire station": "fire_station",
+
+  // Leisure
+  gym: "gym",
+  park: "park",
+  stadium: "stadium",
+  cinema: "movie_theater",
+  "movie theater": "movie_theater",
+  "movie theatre": "movie_theater",
+  library: "library",
+
+  // Accommodation
+  spa: "spa",
+  salon: "hair_care",
+  "hair salon": "hair_care",
+  barbershop: "barber_shop",
+  "barber shop": "barber_shop",
+};
+
+function normalizeToGoogleType(query) {
+  const lower = query.toLowerCase().trim();
+  return GOOGLE_TYPE_MAP[lower] || lower;
+}
+
+// ─────────────────────────────────────────
 // Fetch places from Google Places API
-// Documentation: https://developers.google.com/maps/documentation/places/web-service/search-nearby
 // ─────────────────────────────────────────
 async function fetchFromGooglePlaces(query, latitude, longitude, radius) {
+  // Normalize query to a valid Google Places type
+  const googleType = normalizeToGoogleType(query);
+
   try {
     const response = await axios.post(
       "https://places.googleapis.com/v1/places:searchNearby",
       {
-        includedTypes: [query],
+        includedTypes: [googleType],
         maxResultCount: 20,
         locationRestriction: {
           circle: {
@@ -38,7 +155,7 @@ async function fetchFromGooglePlaces(query, latitude, longitude, radius) {
     return places.map((p) => ({
       google_place_id: p.id,
       name: p.displayName?.text || "Unknown",
-      category: query,
+      category: query, // store original normalized query, not the Google type
       address: p.formattedAddress || null,
       phone: p.internationalPhoneNumber || null,
       website: p.websiteUri || null,
@@ -59,13 +176,12 @@ async function fetchFromGooglePlaces(query, latitude, longitude, radius) {
       "Google Places API error:",
       error.response?.data?.error?.message || error.message,
     );
-    // Return empty array instead of crashing — PostGIS results will still be returned
     return [];
   }
 }
 
 // ─────────────────────────────────────────
-// Normalize query using category_synonyms
+// Normalize query using category_synonyms table
 // ─────────────────────────────────────────
 async function normalizeQuery(rawQuery) {
   const cleaned = rawQuery.toLowerCase().trim();
@@ -107,7 +223,7 @@ async function savePlacesToDb(places) {
         place.address,
         place.phone,
         place.website,
-        place.longitude, // ST_MakePoint(lng, lat) — order matters
+        place.longitude,
         place.latitude,
         place.rating,
         place.total_ratings,
@@ -182,7 +298,6 @@ async function saveSearchHistory({
 
 // ─────────────────────────────────────────
 // MAIN SEARCH FUNCTION
-// This is what the controller calls
 // ─────────────────────────────────────────
 async function searchNearby({
   rawQuery,
@@ -192,11 +307,10 @@ async function searchNearby({
   userId,
   source = "manual",
 }) {
-  // Step 1 — normalize query
+  // Step 1 — normalize query via DB synonyms
   const query = await normalizeQuery(rawQuery);
 
   // Step 2 — build cache key
-  // Round coords to 3 decimal places (~111m precision) for better cache hits
   const lat = parseFloat(latitude).toFixed(3);
   const lng = parseFloat(longitude).toFixed(3);
   const cacheKey = `search:${query}:${lat}:${lng}:${radius}`;

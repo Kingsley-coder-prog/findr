@@ -1,4 +1,5 @@
 const { pool } = require("../../config/db");
+const axios = require("axios");
 
 async function getPlaceById(placeId) {
   const result = await pool.query(
@@ -21,10 +22,8 @@ async function getPlaceById(placeId) {
 }
 
 async function savePlace(userId, placeId, note = null) {
-  // Check place exists
   await getPlaceById(placeId);
 
-  // Check free plan limit
   const user = await pool.query("SELECT plan FROM users WHERE id = $1", [
     userId,
   ]);
@@ -90,7 +89,7 @@ async function removeSavedPlace(userId, placeId) {
 }
 
 async function getDirections(originLat, originLng, destPlaceId) {
-  // Look up destination place from our DB first
+  // Look up destination coordinates from DB
   const result = await pool.query(
     `SELECT
       name, address,
@@ -109,52 +108,98 @@ async function getDirections(originLat, originLng, destPlaceId) {
 
   const destination = result.rows[0];
 
-  // TODO: Replace mock with real Google Directions API call when billing is confirmed
-  // const response = await axios.get('https://maps.googleapis.com/maps/api/directions/json', {
-  //   params: {
-  //     origin: `${originLat},${originLng}`,
-  //     destination: `${destination.latitude},${destination.longitude}`,
-  //     key: process.env.GOOGLE_MAPS_API_KEY
-  //   }
-  // })
-  // return response.data.routes[0]
-
-  // Mock directions response
-  const distanceMetres = Math.round(
-    Math.sqrt(
-      Math.pow((destination.latitude - originLat) * 111000, 2) +
-        Math.pow((destination.longitude - originLng) * 111000, 2),
-    ),
-  );
-  const distanceKm = (distanceMetres / 1000).toFixed(1);
-  const durationMinutes = Math.round(distanceMetres / 80); // ~80m per minute walking
-
-  return {
-    destination: {
-      name: destination.name,
-      address: destination.address,
-      latitude: destination.latitude,
-      longitude: destination.longitude,
-    },
-    origin: { latitude: originLat, longitude: originLng },
-    distance: {
-      metres: distanceMetres,
-      text: `${distanceKm} km`,
-    },
-    duration: {
-      minutes: durationMinutes,
-      text: `${durationMinutes} mins`,
-    },
-    steps: [
+  try {
+    // Real Google Directions API
+    const response = await axios.get(
+      "https://maps.googleapis.com/maps/api/directions/json",
       {
-        instruction: `Head towards ${destination.name}`,
-        distance: `${distanceKm} km`,
-        duration: `${durationMinutes} mins`,
+        params: {
+          origin: `${originLat},${originLng}`,
+          destination: `${destination.latitude},${destination.longitude}`,
+          mode: "driving",
+          key: process.env.GOOGLE_MAPS_API_KEY,
+        },
       },
-    ],
-    polyline: null, // real Google response includes encoded polyline for map rendering
-    source: "mock", // remove when real API is wired
-  };
+    );
+
+    if (
+      response.data.status !== "OK" ||
+      !response.data.routes ||
+      response.data.routes.length === 0
+    ) {
+      throw new Error(`Directions API returned: ${response.data.status}`);
+    }
+
+    const route = response.data.routes[0];
+    const leg = route.legs[0];
+
+    // Extract and clean step instructions (Google returns HTML tags)
+    const steps = leg.steps.map((step) => ({
+      instruction: step.html_instructions.replace(/<[^>]*>/g, ""),
+      distance: step.distance.text,
+      duration: step.duration.text,
+    }));
+
+    return {
+      destination: {
+        name: destination.name,
+        address: destination.address,
+        latitude: destination.latitude,
+        longitude: destination.longitude,
+      },
+      origin: { latitude: originLat, longitude: originLng },
+      distance: {
+        metres: leg.distance.value,
+        text: leg.distance.text,
+      },
+      duration: {
+        minutes: Math.round(leg.duration.value / 60),
+        text: leg.duration.text,
+      },
+      steps,
+      polyline: route.overview_polyline?.points || null,
+      source: "google",
+    };
+  } catch (err) {
+    // Fallback to straight-line calculation if API fails
+    console.error("Google Directions API error, using fallback:", err.message);
+
+    const distanceMetres = Math.round(
+      Math.sqrt(
+        Math.pow((destination.latitude - originLat) * 111000, 2) +
+          Math.pow((destination.longitude - originLng) * 111000, 2),
+      ),
+    );
+    const distanceKm = (distanceMetres / 1000).toFixed(1);
+    const durationMinutes = Math.round(distanceMetres / 250); // ~250m/min driving
+
+    return {
+      destination: {
+        name: destination.name,
+        address: destination.address,
+        latitude: destination.latitude,
+        longitude: destination.longitude,
+      },
+      origin: { latitude: originLat, longitude: originLng },
+      distance: {
+        metres: distanceMetres,
+        text: `${distanceKm} km`,
+      },
+      duration: {
+        minutes: durationMinutes,
+        text: `${durationMinutes} mins`,
+      },
+      steps: [
+        {
+          instruction: `Head towards ${destination.name}`,
+          distance: `${distanceKm} km`,
+          duration: `${durationMinutes} mins`,
+        },
+      ],
+      polyline: null,
+      source: "fallback",
+    };
+  }
 }
 
 module.exports = {
