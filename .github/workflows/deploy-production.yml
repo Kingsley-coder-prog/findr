@@ -6,9 +6,6 @@ on:
       - main
 
 jobs:
-  # ─────────────────────────────────────────
-  # Deploy Backend to Render (Production)
-  # ─────────────────────────────────────────
   deploy-backend-production:
     name: Deploy Backend → Render Production
     runs-on: ubuntu-latest
@@ -18,9 +15,6 @@ jobs:
           curl -s -X POST "${{ secrets.RENDER_PRODUCTION_DEPLOY_HOOK }}" \
             -H "Content-Type: application/json"
 
-  # ─────────────────────────────────────────
-  # Deploy Frontend to Vercel (Production)
-  # ─────────────────────────────────────────
   deploy-frontend-production:
     name: Deploy Frontend → Vercel Production
     runs-on: ubuntu-latest
