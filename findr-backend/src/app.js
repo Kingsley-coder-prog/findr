@@ -17,12 +17,22 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://findr-self.vercel.app",
+  /https:\/\/findr-.*\.vercel\.app$/,
+];
+
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? "https://your-findr-frontend.vercel.app"
-        : "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed = allowedOrigins.some((o) =>
+        o instanceof RegExp ? o.test(origin) : o === origin,
+      );
+      if (allowed) return callback(null, true);
+      callback(new Error(`CORS blocked: ${origin}`));
+    },
     credentials: true,
   }),
 );
