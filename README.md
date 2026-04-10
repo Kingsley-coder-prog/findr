@@ -4,6 +4,8 @@
 
 **Live:** [findr-self.vercel.app](https://findr-self.vercel.app)
 
+![findr preview](https://findr-self.vercel.app/og-image.png)
+
 ---
 
 ## Screenshots
