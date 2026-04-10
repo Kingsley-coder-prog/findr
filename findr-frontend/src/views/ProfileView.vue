@@ -5,7 +5,7 @@
       background: #0a0e14;
       max-width: 680px;
       margin: 0 auto;
-      padding: 32px 20px 0;
+      padding: 32px 20px 120px;
     "
   >
     <!-- Profile header -->
@@ -583,7 +583,7 @@
         text-align: center;
         font-size: 0.72rem;
         color: #3d4a5c;
-        margin: 20px 0 120px;
+        margin: 20px 0 40px;
       "
     >
       Findr v1.0.0

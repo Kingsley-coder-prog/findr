@@ -5,7 +5,7 @@
       background: #0a0e14;
       max-width: 680px;
       margin: 0 auto;
-      padding: 32px 20px 0;
+      padding: 32px 20px 120px;
     "
   >
     <!-- Greeting -->
@@ -459,7 +459,7 @@
     </div>
 
     <!-- Explore -->
-    <div style="margin-bottom: 100px">
+    <div style="margin-bottom: 32px">
       <p
         style="
           font-size: 0.7rem;
