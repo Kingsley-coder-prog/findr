@@ -459,7 +459,7 @@
     </div>
 
     <!-- Explore -->
-    <div style="margin-bottom: 32px">
+    <div style="margin-bottom: 100px">
       <p
         style="
           font-size: 0.7rem;

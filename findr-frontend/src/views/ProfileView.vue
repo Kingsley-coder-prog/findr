@@ -583,7 +583,7 @@
         text-align: center;
         font-size: 0.72rem;
         color: #3d4a5c;
-        margin: 20px 0 40px;
+        margin: 20px 0 120px;
       "
     >
       Findr v1.0.0

@@ -288,7 +288,7 @@
     <div
       style="
         border-top: 1px solid rgba(255, 255, 255, 0.07);
-        padding: 16px 20px 20px;
+        padding: 16px 20px 100px;
         flex-shrink: 0;
       "
     >
