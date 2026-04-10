@@ -1,6 +1,5 @@
 <template>
   <div class="min-h-screen bg-base">
-    <!-- ── Desktop Sidebar ─────────────────────────────────────────── -->
     <aside
       class="hidden lg:flex flex-col fixed inset-y-0 left-0 z-40"
       style="
@@ -12,21 +11,23 @@
       <!-- Logo -->
       <div style="padding: 28px 24px 20px">
         <div style="display: flex; align-items: center; gap: 10px">
-          <div
-            style="width: 30px; height: 30px; color: #00d2be; flex-shrink: 0"
-          >
-            <svg viewBox="0 0 24 24" fill="none">
+          <div style="width: 28px; height: 28px; flex-shrink: 0">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <path
                 d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                fill="currentColor"
+                fill="#00d2be"
               />
-              <circle cx="12" cy="9" r="2.5" fill="#111720" />
+              <circle cx="12" cy="9" r="2.8" fill="#111720" />
             </svg>
           </div>
           <span
             style="
-              font-size: 1.2rem;
-              font-weight: 700;
+              font-size: 1.25rem;
+              font-weight: 600;
               letter-spacing: -0.04em;
               color: #e8edf5;
             "
@@ -66,7 +67,7 @@
           :style="
             $route.path === item.to
               ? 'display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; background:rgba(0,210,190,0.12); color:#00d2be; text-decoration:none; font-size:0.875rem; font-weight:600;'
-              : 'display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; color:#6b7a8d; text-decoration:none; font-size:0.875rem; font-weight:500; transition: all 0.15s;'
+              : 'display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; color:#6b7a8d; text-decoration:none; font-size:0.875rem; font-weight:500; transition:all 0.15s;'
           "
           @mouseenter="
             (e) => {
@@ -185,14 +186,13 @@
       </div>
     </aside>
 
-    <!-- ── Page content (offset by sidebar on desktop) ─────────────── -->
     <div class="min-h-screen lg:ml-[260px]">
       <main class="pb-24 lg:pb-8">
         <RouterView />
       </main>
     </div>
 
-    <!-- ── Mobile bottom nav ───────────────────────────────────────── -->
+    <!-- Mobile bottom nav -->
     <nav
       class="lg:hidden fixed bottom-0 left-0 right-0 z-40"
       style="
@@ -254,7 +254,6 @@ const auth = useAuthStore();
 const userInitial = computed(
   () => auth.user?.name?.charAt(0)?.toUpperCase() || "U"
 );
-
 async function handleLogout() {
   await auth.logout();
 }
