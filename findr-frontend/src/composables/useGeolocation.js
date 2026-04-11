@@ -4,7 +4,7 @@ export function useGeolocation() {
   const latitude = ref(null);
   const longitude = ref(null);
   const error = ref(null);
-  const isLoading = ref(false);
+  const isLoading = ref(false); // New loading state
 
   function getCurrentPosition() {
     return new Promise((resolve, reject) => {
